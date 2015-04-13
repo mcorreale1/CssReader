@@ -26,7 +26,7 @@
 ##	     {"at_rule"=>"@char-set", "command"=>"\"test\""}
 
 ##  nested at-rules (@media, @print):
-##   key = 'at-rule'
+##   key = 'nested'
 ##    value = rule
 ##   key = 'command'
 ##    value = what rule is doing
@@ -58,7 +58,10 @@ class Css_Reader
 	#Takes an array that contains the css elements
 	#returns a formatted hash
 	def hash_css(css_array)
-		raw_hash = {'selector' => css_array.shift, 'contents' => []}
+		raw_hash = {'selector' => css_array.shift.strip, 'contents' => []}
+		if css_array[0] == "" 
+			return raw_hash
+		end
 		css_array.pop
 		css_array.each{ |i| 
 			props = i.split(':').map(&:strip)
@@ -137,6 +140,7 @@ class Css_Reader
 			end
 			#checks for missing final ;
 			# elsif get_rule_type(c) == "selector"
+			#kind of brute forces it, could be done better
 			if c[-2..-1] == "}}"
 				if c[-3] != ";"
 					c.insert(-3, ";")
@@ -146,7 +150,7 @@ class Css_Reader
 					c.insert(-2, ";")
 				end
 			end
-			# end
+
 		}
 		@formatted_css = css
 		return @formatted_css
@@ -168,7 +172,7 @@ class Css_Reader
 				media_array = []
 				media_length = query_length(lines[pos..-1])
 				rule = css[0].split(" ", 2)
-				css_selectors = {'at_rule' => rule[0].strip, 'command' => rule[1].strip}
+				css_selectors = {'nested' => rule[0].strip, 'command' => rule[1].strip}
 				for i in 0..media_length
 					css = lines[pos+i].split( /;|{/)
 					if i == 0 
@@ -182,12 +186,7 @@ class Css_Reader
 			#single at rules	
 			elsif rule_type == "single"
 				rule = css.shift.split(" ", 2).map(&:strip)
-				css_selectors = {'at_rule' => rule[0], 'command' => rule[1]}
-
-			#keyframe rules
-			elsif rule_type == "keyframes"
-				rule = css[0].split(" ", 2)
-
+				css_selectors = {'at-rule' => rule[0], 'command' => rule[1]}
 
 			#standard css rule
 			elsif rule_type == "selector"
@@ -199,7 +198,35 @@ class Css_Reader
 
 	end
 
+	# searches through array to find the selector
+	# Returns an array of hashes with the query
+	# if nested, returns the nest and ONLY 
+	# case sensitive
+	def search_hash(query)
+		results = []
+		@css_hashes.each { |hash|
+			# path = hash
+			# if hash.first[0] == "nested"
+			# 	path = hash['contents']
+			# end
 
+			case hash.first[0]
+			when "selector", "at-rule"
+				if hash.first[1] == query
+					results << hash
+				end
+			when "nested"
+				path = hash
+				hash['contents'].each { |i|
+					if i.first[1] == query
+						path['contents'] = i
+						results << path
+					end
+				}
+			end
+		}
+		return results
+	end
 
 	#Printing functions
 	attr_accessor :raw_css
@@ -231,11 +258,14 @@ class Css_Reader
 	end
 end
 input = ""
-File.open("css/google.css").each { |line|
+File.open("css/style1.css").each { |line|
 	input = input + line
 }
 reader = Css_Reader::new(input)
-puts reader.css_hashes
+# puts reader.css_hashes
+results = reader.search_hash(".tiny")
+puts results
+
 
 
 

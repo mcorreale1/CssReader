@@ -30,6 +30,7 @@ body {
 .panel form input, .signin label{
 	display: inline-block;
 }
+.test{}
  form input[type="submit"]{
 	height: 48px;
 	border: none;
@@ -68,6 +69,7 @@ a.front {
 		float: right;
 		padding:7px;
 	}
+	.tiny {}
 }
 .footer p {
 	font-size: 80%;
